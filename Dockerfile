@@ -18,7 +18,6 @@ RUN go run main.go build latest \
 # 可选：输出版本
 RUN /data/xcaddy/cmd/xcaddy/caddy -v
 
----
 
 # === 阶段 2: 运行阶段 ===
 FROM alpine:edge
