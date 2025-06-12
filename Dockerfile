@@ -34,7 +34,7 @@ RUN apk update && \
 
 
 # 建立软链接：让 Caddy 使用 /data/caddyfile.txt 作为配置文件
-RUN ln -s /data/caddyfile.txt /etc/caddy/Caddyfile
+RUN mkdir -p /data && ln -sf /data/caddyfile.txt /etc/caddy/Caddyfile
 
 # 设置工作目录（可选）
 WORKDIR /data
