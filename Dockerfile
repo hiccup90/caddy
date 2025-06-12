@@ -38,7 +38,7 @@ RUN mkdir -p /etc/caddy /data && \
     ln -sf /data/caddyfile.txt /etc/caddy/Caddyfile
 
 # 设置工作目录（可选）
-WORKDIR /data
+WORKDIR /etc/caddy
 
 # 设置容器启动命令，读取软链接配置
 ENTRYPOINT ["caddy"]
