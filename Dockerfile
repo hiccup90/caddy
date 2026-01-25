@@ -1,41 +1,39 @@
-# === 阶段 1: 构建阶段 ===
+# === 阶段 1: 构建阶段 (Builder) ===
 FROM golang:alpine AS builder
 
-# 安装构建 Caddy 所需的 xcaddy 工具
+# 安装构建工具 git
+RUN apk add --no-cache git
+
+# 安装 xcaddy 工具
 RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
 
-# 直接构建，无需手动 clone 源码
-# xcaddy 会自动下载最新版 Caddy 源码并集成插件
+# 使用 xcaddy 构建 Caddy，集成 Cloudflare DNS 和 DDNS 插件
+# 默认 build latest，产生的二进制文件在当前目录名为 caddy
 RUN xcaddy build \
     --with github.com/caddy-dns/cloudflare \
     --with github.com/mholt/caddy-dynamicdns
 
-# 可选：输出版本
-RUN /data/xcaddy/cmd/xcaddy/caddy -v
-
-
-# === 阶段 2: 运行阶段 ===
+# === 阶段 2: 运行阶段 (Runner) ===
 FROM alpine:edge
 
-# 拷贝构建后的 Caddy 二进制
-COPY --from=builder /data/xcaddy/cmd/xcaddy/caddy /usr/bin/
+# 拷贝构建好的 caddy 二进制文件到系统路径
+COPY --from=builder /go/caddy /usr/bin/caddy
 
-# 安装运行时依赖
-RUN apk update && \
-    apk upgrade && \
-    apk add --no-cache tzdata ca-certificates && \
-    update-ca-certificates && \
-    rm -rf /var/cache/apk/*
+# 安装必要的运行时依赖 (tzdata 用于设置时区, ca-certificates 用于 HTTPS 访问)
+RUN apk add --no-cache \
+    tzdata \
+    ca-certificates \
+    && update-ca-certificates
 
-
-# 建立软链接：让 Caddy 使用 /data/caddyfile.txt 作为配置文件
+# 准备配置目录和软链接
 RUN mkdir -p /etc/caddy /data && \
     ln -sf /data/caddyfile.txt /etc/caddy/Caddyfile
 
-# 设置工作目录（可选）
-WORKDIR /etc/caddy
+# 设置工作目录
+WORKDIR /data
 
-# 设置容器启动命令，读取软链接配置
+
+# 启动命令
 ENTRYPOINT ["caddy"]
 CMD ["run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
 
