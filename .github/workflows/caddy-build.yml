@@ -46,9 +46,13 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          # 关键点：将获取的版本号传给 Dockerfile 的 ARG
+          build-args: |
+            CADDY_VERSION=${{ steps.caddy-version.outputs.version }}
           tags: |
             ${{ env.GITHUB_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.GITHUB_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.caddy-version.outputs.version }}
+          # ... 其他配置保持不变 ...
           labels: |
             org.opencontainers.image.source=${{ github.repository_url }}
             org.opencontainers.image.version=${{ steps.caddy-version.outputs.version }}
