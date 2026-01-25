@@ -2,14 +2,11 @@ name: Build and Push Caddy Docker Image
 
 on:
   schedule:
-    # 每天凌晨检查更新 (UTC时间)
-    - cron: '0 0 * * *'
-  workflow_dispatch:
-    # 允许手动触发
+    - cron: '0 0 * * *' # 每天凌晨检查更新
+  workflow_dispatch: # 允许手动触发
 
 env:
   IMAGE_NAME: caddy
-  # 使用你的GitHub用户名或组织名替换下面的<YOUR_GITHUB_USERNAME_OR_ORG>
   GITHUB_REGISTRY: ghcr.io/hiccup90
 
 jobs:
@@ -46,20 +43,20 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          # 关键点：将获取的版本号传给 Dockerfile 的 ARG
+          # 关键：传入版本号，防止 Docker 缓存导致镜像不更新
           build-args: |
             CADDY_VERSION=${{ steps.caddy-version.outputs.version }}
           tags: |
             ${{ env.GITHUB_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.GITHUB_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.caddy-version.outputs.version }}
-          # ... 其他配置保持不变 ...
-          labels: |
-            org.opencontainers.image.source=${{ github.repository_url }}
-            org.opencontainers.image.version=${{ steps.caddy-version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Display version info
-        run: |
-          echo "Latest Caddy version with custom plugins: ${{ steps.caddy-version.outputs.version }}"
-          echo "Image available at: ${{ env.GITHUB_REGISTRY }}/${{ env.IMAGE_NAME }}"
+      # 清理旧版本，只保留最近 5 个版本
+      - name: Delete old versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ env.IMAGE_NAME }}
+          package-type: 'container'
+          min-versions-to-keep: 5
+          ignore-versions: 'latest'
