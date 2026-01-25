@@ -1,19 +1,14 @@
 # === 阶段 1: 构建阶段 ===
-FROM alpine:edge AS builder
+FROM golang:alpine AS builder
 
-# 安装构建工具
-RUN apk upgrade && apk add go git
+# 安装构建 Caddy 所需的 xcaddy 工具
+RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
 
-# 设置工作目录
-WORKDIR /data
-
-# 克隆 xcaddy 源码
-RUN git clone https://github.com/caddyserver/xcaddy.git --depth 1
-
-# 构建自定义 Caddy（包含 Cloudflare DNS 插件）
-WORKDIR /data/xcaddy/cmd/xcaddy
-RUN go run main.go build latest \
-    --with github.com/caddy-dns/cloudflare
+# 直接构建，无需手动 clone 源码
+# xcaddy 会自动下载最新版 Caddy 源码并集成插件
+RUN xcaddy build \
+    --with github.com/caddy-dns/cloudflare \
+    --with github.com/mholt/caddy-dynamicdns
 
 # 可选：输出版本
 RUN /data/xcaddy/cmd/xcaddy/caddy -v
