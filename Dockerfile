@@ -1,12 +1,13 @@
 # === 阶段 1: 构建阶段 (Builder) ===
 FROM golang:alpine AS builder
-# 接收外部传入的版本号
+
+# 必须声明这个 ARG，才能接收 Workflow 传进来的版本号
 ARG CADDY_VERSION=latest
 
 RUN apk add --no-cache git
 RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
 
-# 使用变量进行构建
+# 这里使用 ${CADDY_VERSION} 代替固定字符串
 RUN xcaddy build ${CADDY_VERSION} \
     --with github.com/caddy-dns/cloudflare \
     --with github.com/mholt/caddy-dynamicdns
