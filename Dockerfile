@@ -1,15 +1,13 @@
 # === 阶段 1: 构建阶段 (Builder) ===
 FROM golang:alpine AS builder
+# 接收外部传入的版本号
+ARG CADDY_VERSION=latest
 
-# 安装构建工具 git
 RUN apk add --no-cache git
-
-# 安装 xcaddy 工具
 RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
 
-# 使用 xcaddy 构建 Caddy，集成 Cloudflare DNS 和 DDNS 插件
-# 默认 build latest，产生的二进制文件在当前目录名为 caddy
-RUN xcaddy build \
+# 使用变量进行构建
+RUN xcaddy build ${CADDY_VERSION} \
     --with github.com/caddy-dns/cloudflare \
     --with github.com/mholt/caddy-dynamicdns
 
