@@ -2,12 +2,14 @@ name: Build and Push Caddy to Docker Hub
 
 on:
   schedule:
-    - cron: '0 0 * * *' # 每天凌晨检查更新
+    - cron: '0 */6 * * *' # 定时检查上游是否有更新
   workflow_dispatch: # 允许手动触发
 
+permissions:
+  contents: write
+
 env:
-  # 替换为你的 DockerHub 用户名/仓库名
-  DOCKERHUB_REPO: hiccup90/caddy 
+  DOCKERHUB_REPO: hiccup90/caddy
 
 jobs:
   build-and-push:
@@ -16,32 +18,101 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read previous upstream state
+        id: previous-state
+        run: |
+          if [ -f upstream-state.json ]; then
+            PREV_CADDY=$(jq -r '.caddy // ""' upstream-state.json)
+            PREV_CLOUDFLARE=$(jq -r '.cloudflare // ""' upstream-state.json)
+            PREV_DYNAMICDNS=$(jq -r '.dynamicdns // ""' upstream-state.json)
+          else
+            PREV_CADDY=""
+            PREV_CLOUDFLARE=""
+            PREV_DYNAMICDNS=""
+          fi
+          echo "caddy=$PREV_CADDY" >> "$GITHUB_OUTPUT"
+          echo "cloudflare=$PREV_CLOUDFLARE" >> "$GITHUB_OUTPUT"
+          echo "dynamicdns=$PREV_DYNAMICDNS" >> "$GITHUB_OUTPUT"
+
+      - name: Get latest upstream versions
+        id: upstream
+        run: |
+          set -euo pipefail
+
+          CADDY_VERSION=$(curl -fsSL https://api.github.com/repos/caddyserver/caddy/releases/latest | jq -r '.tag_name')
+          CLOUDFLARE_REF=$(git ls-remote https://github.com/caddy-dns/cloudflare.git HEAD | awk '{print $1}')
+          DYNAMICDNS_REF=$(git ls-remote https://github.com/mholt/caddy-dynamicdns.git HEAD | awk '{print $1}')
+
+          test -n "$CADDY_VERSION"
+          test -n "$CLOUDFLARE_REF"
+          test -n "$DYNAMICDNS_REF"
+
+          echo "caddy=$CADDY_VERSION" >> "$GITHUB_OUTPUT"
+          echo "cloudflare=$CLOUDFLARE_REF" >> "$GITHUB_OUTPUT"
+          echo "dynamicdns=$DYNAMICDNS_REF" >> "$GITHUB_OUTPUT"
+
+      - name: Detect upstream changes
+        id: changes
+        run: |
+          if [ "${{ steps.upstream.outputs.caddy }}" != "${{ steps.previous-state.outputs.caddy }}" ] || \
+             [ "${{ steps.upstream.outputs.cloudflare }}" != "${{ steps.previous-state.outputs.cloudflare }}" ] || \
+             [ "${{ steps.upstream.outputs.dynamicdns }}" != "${{ steps.previous-state.outputs.dynamicdns }}" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop when upstream is unchanged
+        if: steps.changes.outputs.changed != 'true'
+        run: echo "No upstream changes detected; skipping build."
 
       - name: Set up Docker Buildx
+        if: steps.changes.outputs.changed == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to Docker Hub
+        if: steps.changes.outputs.changed == 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Get latest Caddy version
-        id: caddy-version
-        run: |
-          LATEST=$(curl -s https://api.github.com/repos/caddyserver/caddy/releases/latest | jq -r '.tag_name')
-          echo "version=$LATEST" >> $GITHUB_OUTPUT
-
       - name: Build and push
+        if: steps.changes.outputs.changed == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
           build-args: |
-            CADDY_VERSION=${{ steps.caddy-version.outputs.version }}
+            CADDY_VERSION=${{ steps.upstream.outputs.caddy }}
+            CLOUDFLARE_REF=${{ steps.upstream.outputs.cloudflare }}
+            DYNAMICDNS_REF=${{ steps.upstream.outputs.dynamicdns }}
           tags: |
             ${{ env.DOCKERHUB_REPO }}:latest
-            ${{ env.DOCKERHUB_REPO }}:${{ steps.caddy-version.outputs.version }}
+            ${{ env.DOCKERHUB_REPO }}:${{ steps.upstream.outputs.caddy }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Update upstream state
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          cat > upstream-state.json <<EOF
+          {
+            "caddy": "${{ steps.upstream.outputs.caddy }}",
+            "cloudflare": "${{ steps.upstream.outputs.cloudflare }}",
+            "dynamicdns": "${{ steps.upstream.outputs.dynamicdns }}"
+          }
+          EOF
+
+      - name: Commit updated upstream state
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add upstream-state.json
+          git diff --cached --quiet || git commit -m "chore: update upstream state"
+          git push
