@@ -1,5 +1,5 @@
 {
-  "caddy": "",
-  "cloudflare": "",
-  "dynamicdns": ""
+  "caddy": "v2.11.2",
+  "cloudflare": "a8737d095ad5a48ca031cea6ab704057dbc2d250",
+  "dynamicdns": "1af4f88765982db86ce091eeb075cfb2d9348dc8"
 }
