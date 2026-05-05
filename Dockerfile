@@ -34,5 +34,5 @@ WORKDIR /data
 
 # 启动命令
 ENTRYPOINT ["caddy"]
-CMD ["run", "--config", "/data/Caddyfile", "--adapter", "caddyfile"]
+CMD ["run", "--config", "/data/Caddyfile", "--adapter", "caddyfile", "--watch"]
 
