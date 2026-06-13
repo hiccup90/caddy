@@ -5,6 +5,7 @@ FROM golang:alpine AS builder
 ARG CADDY_VERSION=latest
 ARG CLOUDFLARE_REF
 ARG DYNAMICDNS_REF
+ARG L4_REF
 
 RUN apk add --no-cache git
 RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
@@ -12,7 +13,8 @@ RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
 # 这里使用 Workflow 传进来的上游版本构建
 RUN xcaddy build ${CADDY_VERSION} \
     --with github.com/caddy-dns/cloudflare@${CLOUDFLARE_REF} \
-    --with github.com/mholt/caddy-dynamicdns@${DYNAMICDNS_REF}
+    --with github.com/mholt/caddy-dynamicdns@${DYNAMICDNS_REF} \
+    --with github.com/mholt/caddy-l4@${L4_REF}
 
 # === 阶段 2: 运行阶段 (Runner) ===
 FROM alpine:edge
@@ -35,4 +37,3 @@ WORKDIR /data
 # 启动命令
 ENTRYPOINT ["caddy"]
 CMD ["run", "--config", "/data/Caddyfile", "--adapter", "caddyfile", "--watch"]
-
