@@ -10,6 +10,7 @@ permissions:
 
 env:
   DOCKERHUB_REPO: hiccup90/caddy
+  L4_REF: 7b7abcbbb8afb7d7eeb359bfc0f6b24e6c5bbe02
 
 jobs:
   build-and-push:
@@ -48,7 +49,7 @@ jobs:
           CADDY_VERSION=$(curl -fsSL https://api.github.com/repos/caddyserver/caddy/releases/latest | jq -r '.tag_name')
           CLOUDFLARE_REF=$(git ls-remote https://github.com/caddy-dns/cloudflare.git HEAD | awk '{print $1}')
           DYNAMICDNS_REF=$(git ls-remote https://github.com/mholt/caddy-dynamicdns.git HEAD | awk '{print $1}')
-          L4_REF=$(git ls-remote https://github.com/mholt/caddy-l4.git HEAD | awk '{print $1}')
+          L4_REF="${{ env.L4_REF }}"
 
           test -n "$CADDY_VERSION"
           test -n "$CLOUDFLARE_REF"
