@@ -64,7 +64,8 @@ jobs:
       - name: Detect upstream changes
         id: changes
         run: |
-          if [ "${{ steps.upstream.outputs.caddy }}" != "${{ steps.previous-state.outputs.caddy }}" ] || \
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || \
+             [ "${{ steps.upstream.outputs.caddy }}" != "${{ steps.previous-state.outputs.caddy }}" ] || \
              [ "${{ steps.upstream.outputs.cloudflare }}" != "${{ steps.previous-state.outputs.cloudflare }}" ] || \
              [ "${{ steps.upstream.outputs.dynamicdns }}" != "${{ steps.previous-state.outputs.dynamicdns }}" ] || \
              [ "${{ steps.upstream.outputs.l4 }}" != "${{ steps.previous-state.outputs.l4 }}" ]; then
