@@ -10,7 +10,7 @@ permissions:
 
 env:
   DOCKERHUB_REPO: hiccup90/caddy
-  L4_REF: 7b7abcbbb8afb7d7eeb359bfc0f6b24e6c5bbe02
+  SSH_PROXY_REF: 1ce35943693456026110c0bb47473d6942a23343
 
 jobs:
   build-and-push:
@@ -29,17 +29,17 @@ jobs:
             PREV_CADDY=$(jq -r '.caddy // ""' upstream-state.json)
             PREV_CLOUDFLARE=$(jq -r '.cloudflare // ""' upstream-state.json)
             PREV_DYNAMICDNS=$(jq -r '.dynamicdns // ""' upstream-state.json)
-            PREV_L4=$(jq -r '.l4 // ""' upstream-state.json)
+            PREV_SSH_PROXY=$(jq -r '.ssh_proxy // ""' upstream-state.json)
           else
             PREV_CADDY=""
             PREV_CLOUDFLARE=""
             PREV_DYNAMICDNS=""
-            PREV_L4=""
+            PREV_SSH_PROXY=""
           fi
           echo "caddy=$PREV_CADDY" >> "$GITHUB_OUTPUT"
           echo "cloudflare=$PREV_CLOUDFLARE" >> "$GITHUB_OUTPUT"
           echo "dynamicdns=$PREV_DYNAMICDNS" >> "$GITHUB_OUTPUT"
-          echo "l4=$PREV_L4" >> "$GITHUB_OUTPUT"
+          echo "ssh_proxy=$PREV_SSH_PROXY" >> "$GITHUB_OUTPUT"
 
       - name: Get latest upstream versions
         id: upstream
@@ -49,17 +49,17 @@ jobs:
           CADDY_VERSION=$(curl -fsSL https://api.github.com/repos/caddyserver/caddy/releases/latest | jq -r '.tag_name')
           CLOUDFLARE_REF=$(git ls-remote https://github.com/caddy-dns/cloudflare.git HEAD | awk '{print $1}')
           DYNAMICDNS_REF=$(git ls-remote https://github.com/mholt/caddy-dynamicdns.git HEAD | awk '{print $1}')
-          L4_REF="${{ env.L4_REF }}"
+          SSH_PROXY_REF="${{ env.SSH_PROXY_REF }}"
 
           test -n "$CADDY_VERSION"
           test -n "$CLOUDFLARE_REF"
           test -n "$DYNAMICDNS_REF"
-          test -n "$L4_REF"
+          test -n "$SSH_PROXY_REF"
 
           echo "caddy=$CADDY_VERSION" >> "$GITHUB_OUTPUT"
           echo "cloudflare=$CLOUDFLARE_REF" >> "$GITHUB_OUTPUT"
           echo "dynamicdns=$DYNAMICDNS_REF" >> "$GITHUB_OUTPUT"
-          echo "l4=$L4_REF" >> "$GITHUB_OUTPUT"
+          echo "ssh_proxy=$SSH_PROXY_REF" >> "$GITHUB_OUTPUT"
 
       - name: Detect upstream changes
         id: changes
@@ -68,7 +68,7 @@ jobs:
              [ "${{ steps.upstream.outputs.caddy }}" != "${{ steps.previous-state.outputs.caddy }}" ] || \
              [ "${{ steps.upstream.outputs.cloudflare }}" != "${{ steps.previous-state.outputs.cloudflare }}" ] || \
              [ "${{ steps.upstream.outputs.dynamicdns }}" != "${{ steps.previous-state.outputs.dynamicdns }}" ] || \
-             [ "${{ steps.upstream.outputs.l4 }}" != "${{ steps.previous-state.outputs.l4 }}" ]; then
+             [ "${{ steps.upstream.outputs.ssh_proxy }}" != "${{ steps.previous-state.outputs.ssh_proxy }}" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -100,7 +100,7 @@ jobs:
             CADDY_VERSION=${{ steps.upstream.outputs.caddy }}
             CLOUDFLARE_REF=${{ steps.upstream.outputs.cloudflare }}
             DYNAMICDNS_REF=${{ steps.upstream.outputs.dynamicdns }}
-            L4_REF=${{ steps.upstream.outputs.l4 }}
+            SSH_PROXY_REF=${{ steps.upstream.outputs.ssh_proxy }}
           tags: |
             ${{ env.DOCKERHUB_REPO }}:latest
             ${{ env.DOCKERHUB_REPO }}:${{ steps.upstream.outputs.caddy }}
@@ -115,7 +115,7 @@ jobs:
             "caddy": "${{ steps.upstream.outputs.caddy }}",
             "cloudflare": "${{ steps.upstream.outputs.cloudflare }}",
             "dynamicdns": "${{ steps.upstream.outputs.dynamicdns }}",
-            "l4": "${{ steps.upstream.outputs.l4 }}"
+            "ssh_proxy": "${{ steps.upstream.outputs.ssh_proxy }}"
           }
           EOF
 

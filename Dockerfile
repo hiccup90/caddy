@@ -5,7 +5,7 @@ FROM golang:alpine AS builder
 ARG CADDY_VERSION=latest
 ARG CLOUDFLARE_REF
 ARG DYNAMICDNS_REF
-ARG L4_REF
+ARG SSH_PROXY_REF
 
 RUN apk add --no-cache git
 RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
@@ -14,7 +14,7 @@ RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
 RUN xcaddy build ${CADDY_VERSION} \
     --with github.com/caddy-dns/cloudflare@${CLOUDFLARE_REF} \
     --with github.com/mholt/caddy-dynamicdns@${DYNAMICDNS_REF} \
-    --with github.com/mholt/caddy-l4@${L4_REF}
+    --with github.com/hiccup90/caddy-ssh-proxy@${SSH_PROXY_REF}
 
 # === 阶段 2: 运行阶段 (Runner) ===
 FROM alpine:edge
