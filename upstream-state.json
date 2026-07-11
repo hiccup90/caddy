@@ -1,6 +1,6 @@
 {
   "caddy": "v2.11.4",
   "cloudflare": "a8737d095ad5a48ca031cea6ab704057dbc2d250",
-  "dynamicdns": "1af4f88765982db86ce091eeb075cfb2d9348dc8",
+  "dynamicdns": "a5890c9df68cb7ed603f552a624f6123a5fad2ff",
   "ssh_proxy": "1ce35943693456026110c0bb47473d6942a23343"
 }
